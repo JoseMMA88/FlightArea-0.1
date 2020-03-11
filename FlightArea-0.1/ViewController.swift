@@ -25,10 +25,12 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     var locationManager: CLLocationManager?
     var userLocation: CLLocationCoordinate2D!
     var startLocation: CGPoint?
+    var d: Double = 0.00005
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        //mapView.delegate = self
         
         initData()
         updatePolygon()
@@ -51,11 +53,63 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     }
     
  
+    @IBAction func addPointBtnAction(_ sender: Any) {
+        if(points.count == 0){
+            let point = MKPointAnnotation()
+            points.append(point)
+            point.coordinate = CLLocation(latitude: userLocation.latitude + d, longitude: userLocation.longitude + d).coordinate
+            mapView.addAnnotation(point)
+        
+           // d = d + 0.00015 // comentar
+            NSLog(String(points.count))
+            updatePolygon()
+        }
+        else{
+            let point = MKPointAnnotation()
+            points.append(point)
+            let lat = points.last?.coordinate.latitude
+            let long = points.last?.coordinate.longitude
+            point.coordinate = CLLocation(latitude: lat! + d, longitude: long! + d).coordinate
+            mapView.addAnnotation(point)
+            NSLog(String(points.count))
+            //d = d + 0.00015 // comentar
+                  
+            updatePolygon()
+        }
+        /*if(points){
+            for i in 0..<points.count
+        }*/
+    }
+    
+    
+   /* @IBAction func removeLastPointsBtnAction(_ sender: Any) {
+        for i in 0..<points.count{
+            if(i == ){
+                points.remove(at: i)
+            }
+        }
+        
+    }*/
     
     
     
     //------------------------------ MAP VIEW ---------------------------------------------
     //MARK: MAPVIEW METHODS
+    
+    // Se llama al principio de la ejecucion y cuando movemos un annotation
+    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+          if overlay is MKPolygon {
+              let polygonView = MKPolygonRenderer(overlay: overlay)
+                  polygonView.strokeColor = .green
+                  polygonView.lineWidth = 1.0
+                  polygonView.fillColor = UIColor.green.withAlphaComponent(0.25)
+              return polygonView
+          }
+          return MKOverlayRenderer()
+      }
+    
+    
+    // Se llama en segundo lugar
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
         guard let annotation = annotation as? MKPointAnnotation else { return nil }
         var view = mapView.dequeueReusableAnnotationView(withIdentifier: "marker")
@@ -79,16 +133,6 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         return view
     }
     
-    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        if overlay is MKPolygon {
-            let polygonView = MKPolygonRenderer(overlay: overlay)
-                polygonView.strokeColor = .green
-                polygonView.lineWidth = 1.0
-                polygonView.fillColor = UIColor.green.withAlphaComponent(0.25)
-            return polygonView
-        }
-        return MKOverlayRenderer.init()
-    }
     
     
     // Se llama a esta funcion cuando se arrastra un Annotation
@@ -134,7 +178,6 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     // CLLocationManager delegate funcion, guardamos la poscion del usuario
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        NSLog("Entro??")
         let location = locations.last
         
         if let coordinate = location?.coordinate{
@@ -192,13 +235,7 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
                      locationManager?.requestAlwaysAuthorization()
                  }
                  locationManager?.startUpdatingLocation()
-                 //self.showAlertViewWithTittle(title: "Actualizando Localizacion", WithMessage: "")
-                NSLog("Actualizando Localizacion")
              }
-         }
-         else{
-             //self.showAlertViewWithTittle(title: "Location Services is not avaible", WithMessage: "")
-            NSLog("Localizacion no disponible")
          }
      }
      
