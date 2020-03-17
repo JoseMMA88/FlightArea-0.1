@@ -25,7 +25,7 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     var locationManager: CLLocationManager?
     var userLocation: CLLocationCoordinate2D!
     var startLocation: CGPoint?
-    var d: Double = 0.00005
+    var d: Double = 0.00015
     
     
     override func viewDidLoad() {
@@ -59,37 +59,50 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             points.append(point)
             point.coordinate = CLLocation(latitude: userLocation.latitude + d, longitude: userLocation.longitude + d).coordinate
             mapView.addAnnotation(point)
-        
-           // d = d + 0.00015 // comentar
-            NSLog(String(points.count))
+            
             updatePolygon()
         }
         else{
             let point = MKPointAnnotation()
             points.append(point)
-            let lat = points.last?.coordinate.latitude
-            let long = points.last?.coordinate.longitude
-            point.coordinate = CLLocation(latitude: lat! + d, longitude: long! + d).coordinate
+            let lat = points[0].coordinate.latitude
+            let long = points[0].coordinate.longitude
+            point.coordinate = CLLocation(latitude: lat + d, longitude: long + d).coordinate
             mapView.addAnnotation(point)
-            NSLog(String(points.count))
-            //d = d + 0.00015 // comentar
                   
             updatePolygon()
         }
-        /*if(points){
-            for i in 0..<points.count
-        }*/
+            
     }
     
     
-   /* @IBAction func removeLastPointsBtnAction(_ sender: Any) {
+    @IBAction func removeLastPointsBtnAction(_ sender: Any) {
+        let annos: NSArray = NSArray.init(array: mapView!.annotations)
+        var borrlat: Double = 0
+        var borrlong: Double = 0
+        
+        // Borramos en la array points
         for i in 0..<points.count{
-            if(i == ){
+            if(i == (points.count-1)){
+                //if (!(ann!.isEqual(self.aircraftAnnotation)))
+                borrlat = points[i].coordinate.latitude
+                borrlong = points[i].coordinate.longitude
+                                       
                 points.remove(at: i)
             }
         }
         
-    }*/
+        // Borramos en la array de Annotations
+        for n in 0..<annos.count{
+            weak var ann = annos[n] as? MKAnnotation
+                if((borrlat == ann!.coordinate.latitude) && (borrlong == ann!.coordinate.longitude)){
+                    // Borramos annotation
+                    mapView?.removeAnnotation(ann!)
+                }
+        }
+        updatePolygon()
+  
+    }
     
     
     
@@ -193,12 +206,14 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     func updatePolygon(){
         // Si hay polygon lo borramos
         if (polygon != nil){
+            //NSLog(String(polygon!.interiorPolygons!.capacity))
             mapView.removeOverlay(polygon!)
         }
         
         // Creamos un nuevo poligono
         let coords = points.map { $0.coordinate }
         polygon = MKPolygon.init(coordinates: coords, count: coords.count)
+        
         mapView.addOverlay(polygon!)
     }
     
