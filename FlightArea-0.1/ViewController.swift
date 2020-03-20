@@ -21,11 +21,13 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     //MARK:VARs
     var polygon: MKPolygon?
+    var circle: MKCircle?
     var points: [MKAnnotation] = []
     var locationManager: CLLocationManager?
     var userLocation: CLLocationCoordinate2D!
     var startLocation: CGPoint?
     var d: Double = 0.00015
+    var kEarthRadius = 6378137.0 //Radio en el ecuador de la tierra
     
     
     override func viewDidLoad() {
@@ -118,6 +120,13 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
                   polygonView.fillColor = UIColor.green.withAlphaComponent(0.25)
               return polygonView
           }
+          else if overlay is MKCircle {
+            let circleView = MKCircleRenderer(overlay: overlay)
+            circleView.strokeColor = .red
+            circleView.lineWidth = 2.0
+            circleView.fillColor = UIColor.red.withAlphaComponent(0.25)
+            return circleView
+        }
           return MKOverlayRenderer()
       }
     
@@ -214,7 +223,16 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         let coords = points.map { $0.coordinate }
         polygon = MKPolygon.init(coordinates: coords, count: coords.count)
         
+        NSLog(String(regionArea(locations: coords)))
+       
         mapView.addOverlay(polygon!)
+        if(points.count > 0){
+            updateCircle(coord: findStartWaypoint()!)
+            NSLog("------------------------------------------")
+            NSLog(String(findStartWaypoint()!.latitude))
+            NSLog(String(findStartWaypoint()!.longitude))
+            NSLog("------------------------------------------")
+        }
     }
     
     
@@ -260,6 +278,69 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         startLocation = CGPoint.zero
     }
 
+    func radians(degrees: Double) -> Double{
+        return degrees * .pi / 100
+    }
+    
+    
+    
+    
+    // https://stackoverflow.com/questions/29513966/calculate-area-of-mkpolygon-in-an-mkmapview
+    
+    // Calcula el area del poligono respecto del mapa en metros cuadrados
+    // tiene en cuenta el radio de la tierra
+    // The Spherical Case equation - Some Algorithms for polygons on a Sphere by Chamberlain & Duquette
+    // NASA
+    func regionArea(locations: [CLLocationCoordinate2D]) -> Double {
+        guard locations.count > 2 else { return 0 }
+        var area = 0.0
+        
+        for i in 0..<locations.count {
+            let p1 = locations[i > 0 ? i - 1 : locations.count - 1]
+            let p2 = locations[i]
+            
+            area += radians(degrees: p2.longitude - p1.longitude) * (2 + sin(radians(degrees: p1.latitude)) + sin(radians(degrees: p2.latitude)) )
+            
+        }
+        area = -(area * kEarthRadius * kEarthRadius / 2)
+        return max(area, -area)
+    }
+    
+    
+    // Draw MKCircle
+    func updateCircle(coord: CLLocationCoordinate2D){
+        let rad: CLLocationDistance = 20
+        if (circle != nil){
+                  //NSLog(String(polygon!.interiorPolygons!.capacity))
+                  mapView.removeOverlay(circle!)
+              }
+        
+        circle = MKCircle.init(center: coord, radius: rad)
+        mapView.addOverlay(circle!)
+    }
+    
+    
+    
+    // Find the closest waypoint
+    func findStartWaypoint() -> CLLocationCoordinate2D?{
+        if(points.count>0){
+            var aux = points[0].coordinate
+            let p1 = MKMapPoint(userLocation)
+            let p2 = MKMapPoint(points[0].coordinate)
+            var dis = p1.distance(to: p2)
+            for i in 0..<points.count {
+                let dis2 = p1.distance(to: MKMapPoint(points[i].coordinate))
+                if(dis2 < dis){
+                    aux = points[i].coordinate
+                    dis = dis2
+                }
+            }
+            return aux
+        }
+        else{
+            return nil
+        }
+    }
 
 }
 
