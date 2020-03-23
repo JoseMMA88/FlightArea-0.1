@@ -21,7 +21,9 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     //MARK:VARs
     var polygon: MKPolygon?
+    var polygonView: MKPolygonRenderer?
     var circle: MKCircle?
+    var circleView: MKCircleRenderer?
     var points: [MKAnnotation] = []
     var locationManager: CLLocationManager?
     var userLocation: CLLocationCoordinate2D!
@@ -114,18 +116,18 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     // Se llama al principio de la ejecucion y cuando movemos un annotation
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
           if overlay is MKPolygon {
-              let polygonView = MKPolygonRenderer(overlay: overlay)
-                  polygonView.strokeColor = .green
-                  polygonView.lineWidth = 1.0
-                  polygonView.fillColor = UIColor.green.withAlphaComponent(0.25)
-              return polygonView
+              polygonView = MKPolygonRenderer(overlay: overlay)
+                  polygonView!.strokeColor = .green
+                  polygonView!.lineWidth = 1.0
+                  polygonView!.fillColor = UIColor.green.withAlphaComponent(0.25)
+              return polygonView!
           }
           else if overlay is MKCircle {
-            let circleView = MKCircleRenderer(overlay: overlay)
-            circleView.strokeColor = .red
-            circleView.lineWidth = 2.0
-            circleView.fillColor = UIColor.red.withAlphaComponent(0.25)
-            return circleView
+            circleView = MKCircleRenderer(overlay: overlay)
+            circleView!.strokeColor = .red
+            circleView!.lineWidth = 2.0
+            circleView!.fillColor = UIColor.red.withAlphaComponent(0.25)
+            return circleView!
         }
           return MKOverlayRenderer()
       }
@@ -228,10 +230,6 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         mapView.addOverlay(polygon!)
         if(points.count > 0){
             updateCircle(coord: findStartWaypoint()!)
-            NSLog("------------------------------------------")
-            NSLog(String(findStartWaypoint()!.latitude))
-            NSLog(String(findStartWaypoint()!.longitude))
-            NSLog("------------------------------------------")
         }
     }
     
@@ -279,7 +277,7 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     }
 
     func radians(degrees: Double) -> Double{
-        return degrees * .pi / 100
+        return degrees * .pi / 180
     }
     
     
@@ -309,13 +307,16 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     // Draw MKCircle
     func updateCircle(coord: CLLocationCoordinate2D){
-        let rad: CLLocationDistance = 20
+        let rad: CLLocationDistance = 15 //metros
         if (circle != nil){
-                  //NSLog(String(polygon!.interiorPolygons!.capacity))
-                  mapView.removeOverlay(circle!)
-              }
-        
+            //NSLog(String(polygon!.interiorPolygons!.capacity))
+            mapView.removeOverlay(circle!)
+            
+        }
+        // Creamos el circulo
         circle = MKCircle.init(center: coord, radius: rad)
+        
+        updatePeriPoints(cent: coord, rad: rad)
         mapView.addOverlay(circle!)
     }
     
@@ -341,6 +342,51 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             return nil
         }
     }
-
+    
+    // Create waypoints path
+    func createFlightPath(){
+        
+    }
+    
+    // Calculamos unos 40 puntos del circulo
+    // https://stackoverflow.com/questions/32242498/get-all-points-coordinate-on-a-mkcircle
+    func radiusSearchPoints(center: CLLocationCoordinate2D, radius: CLLocationDistance) -> [CLLocationCoordinate2D]{
+        var peripoints: [CLLocationCoordinate2D] = []
+        let lat = radians(degrees: center.latitude)
+        let long = radians(degrees: center.longitude)
+        
+        var t: Double = 0
+        while t <= 2 * .pi {
+            let pointLat = lat + (radius / kEarthRadius) * sin(t)
+            let pointLng = long + (radius / kEarthRadius) * cos(t)
+            
+            let point = CLLocationCoordinate2D(latitude: pointLat * 180 / .pi, longitude: pointLng * 180 / .pi)
+            peripoints.append(point)
+            t += 0.1
+        }
+        return peripoints
+    }
+    
+    
+    func updatePeriPoints(cent: CLLocationCoordinate2D, rad: CLLocationDistance){
+        // Obtenemos los puntos del perimetro
+         // y los dibujamos
+         if(polygon != nil && points.count > 2){
+            let peripoints: [CLLocationCoordinate2D] = radiusSearchPoints(center: cent, radius: rad)
+             for i in 0..<peripoints.count{
+                 let mapPoint = MKMapPoint(peripoints[i])
+                 let cgpoint = polygonView!.point(for: mapPoint)
+                 if(polygonView!.path.contains(cgpoint)){
+                     let circle_aux = MKCircle.init(center: peripoints[i], radius: 1)
+                     NSLog(String(peripoints.count))
+                     NSLog("Lat: ")
+                     NSLog(String(peripoints[i].latitude))
+                     NSLog("Long: ")
+                     NSLog(String(peripoints[i].longitude))
+                     mapView.addOverlay(circle_aux)
+                 }
+             }
+         }
+    }
 }
 
