@@ -24,12 +24,21 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     var polygonView: MKPolygonRenderer?
     var circle: MKCircle?
     var circleView: MKCircleRenderer?
-    var points: [MKAnnotation] = []
-    var locationManager: CLLocationManager?
-    var userLocation: CLLocationCoordinate2D!
+    var points: [MKAnnotation] = [] // Aristas del poligono
+    var locationManager: CLLocationManager?// Controlador de localizacion
+    var userLocation: CLLocationCoordinate2D!// Localizacion del usuario en tiempo real
     var startLocation: CGPoint?
     var d: Double = 0.00015
+    
+    // Calcular area
     var kEarthRadius = 6378137.0 //Radio en el ecuador de la tierra
+    
+    // Puntos del perimetro del circulo
+    var peripoints: [CLLocationCoordinate2D] = []
+    var arr_circle_auxs: [MKCircle] = []
+    
+    //Path
+    var path: [MKAnnotation] = []
     
     
     override func viewDidLoad() {
@@ -309,10 +318,9 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     func updateCircle(coord: CLLocationCoordinate2D){
         let rad: CLLocationDistance = 15 //metros
         if (circle != nil){
-            //NSLog(String(polygon!.interiorPolygons!.capacity))
             mapView.removeOverlay(circle!)
-            
         }
+        
         // Creamos el circulo
         circle = MKCircle.init(center: coord, radius: rad)
         
@@ -369,24 +377,28 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     
     func updatePeriPoints(cent: CLLocationCoordinate2D, rad: CLLocationDistance){
+        // Si hay dibujados, los borramos
+        if(arr_circle_auxs.count > 0){
+            mapView.removeOverlays(arr_circle_auxs)
+            peripoints.removeAll()
+        }
+        
         // Obtenemos los puntos del perimetro
-         // y los dibujamos
+        // y los dibujamos
          if(polygon != nil && points.count > 2){
-            let peripoints: [CLLocationCoordinate2D] = radiusSearchPoints(center: cent, radius: rad)
+             peripoints = radiusSearchPoints(center: cent, radius: rad)
              for i in 0..<peripoints.count{
                  let mapPoint = MKMapPoint(peripoints[i])
                  let cgpoint = polygonView!.point(for: mapPoint)
                  if(polygonView!.path.contains(cgpoint)){
-                     let circle_aux = MKCircle.init(center: peripoints[i], radius: 1)
-                     NSLog(String(peripoints.count))
-                     NSLog("Lat: ")
-                     NSLog(String(peripoints[i].latitude))
-                     NSLog("Long: ")
-                     NSLog(String(peripoints[i].longitude))
-                     mapView.addOverlay(circle_aux)
+                    let circle_aux = MKCircle.init(center: peripoints[i], radius: 1)
+                    arr_circle_auxs.append(circle_aux)
+                    mapView.addOverlay(circle_aux)
                  }
              }
          }
     }
+    
+    
 }
 
