@@ -24,6 +24,9 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     var polygonView: MKPolygonRenderer?
     var circle: MKCircle?
     var circleView: MKCircleRenderer?
+    var center: MKCircle?
+    
+    
     var points: [MKAnnotation] = [] // Aristas del poligono
     var locationManager: CLLocationManager?// Controlador de localizacion
     var userLocation: CLLocationCoordinate2D!// Localizacion del usuario en tiempo real
@@ -39,6 +42,9 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     //Path
     var path: [MKAnnotation] = []
+    var triangles: [MKPolygon] = []
+    var path_coord: [CLLocationCoordinate2D] = []
+    var arr_circle_auxs2: [MKCircle] = []
     
     
     override func viewDidLoad() {
@@ -125,11 +131,11 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     // Se llama al principio de la ejecucion y cuando movemos un annotation
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
           if overlay is MKPolygon {
-              polygonView = MKPolygonRenderer(overlay: overlay)
-                  polygonView!.strokeColor = .green
-                  polygonView!.lineWidth = 1.0
-                  polygonView!.fillColor = UIColor.green.withAlphaComponent(0.25)
-              return polygonView!
+            polygonView = MKPolygonRenderer(overlay: overlay)
+            polygonView!.strokeColor = .green
+            polygonView!.lineWidth = 1.0
+            polygonView!.fillColor = UIColor.green.withAlphaComponent(0.25)
+            return polygonView!
           }
           else if overlay is MKCircle {
             circleView = MKCircleRenderer(overlay: overlay)
@@ -226,7 +232,6 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     func updatePolygon(){
         // Si hay polygon lo borramos
         if (polygon != nil){
-            //NSLog(String(polygon!.interiorPolygons!.capacity))
             mapView.removeOverlay(polygon!)
         }
         
@@ -234,11 +239,28 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         let coords = points.map { $0.coordinate }
         polygon = MKPolygon.init(coordinates: coords, count: coords.count)
         
-        NSLog(String(regionArea(locations: coords)))
+        //NSLog(String(regionArea(locations: coords)))
        
         mapView.addOverlay(polygon!)
         if(points.count > 0){
             updateCircle(coord: findStartWaypoint()!)
+        }
+        if(points.count > 2){
+            if(center != nil){
+                mapView.removeOverlay(center!)
+            }
+            if(path_coord.count > 0){
+                path_coord.removeAll()
+                //arr_circle_auxs2.removeAll()
+            }
+            let centr = polygon!.coordinate
+            
+            // Creamos el circulo
+            center = MKCircle.init(center: centr, radius: 5)
+            mapView.addOverlay(center!)
+            
+            //Triangulamos
+            updateTriangles(poli: polygon!)
         }
     }
     
@@ -330,7 +352,7 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     
     
-    // Find the closest waypoint
+    // Find the closest waypoint to DronLocation
     func findStartWaypoint() -> CLLocationCoordinate2D?{
         if(points.count>0){
             var aux = points[0].coordinate
@@ -353,7 +375,40 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     // Create waypoints path
     func createFlightPath(){
+    }
+    
+    func addPointoPath(point: CLLocationCoordinate2D){
+        var distancia = true
         
+        if(path_coord.count == 0){
+            path_coord.append(point)
+        }
+        else{
+            let p2 = MKMapPoint(point)
+            for i in 0..<path_coord.count{
+                let p1 = MKMapPoint(path_coord[i])
+                let dis = p2.distance(to: p1)
+                if(dis < 15){
+                    distancia = false
+                    //NSLog(String(dis))
+                }
+                else{
+                }
+            }
+            if(distancia == true){
+                let center2 = MKCircle.init(center: point, radius: 5)
+                mapView.addOverlay(center2)
+                NSLog("------------------------------------")
+                NSLog(String(point.latitude))
+                NSLog(String(point.longitude))
+                NSLog("------------------------------------")
+                // Añadimos los puntos medios al path
+                arr_circle_auxs2.append(center2)
+                path_coord.append(point)
+                distancia = false
+            }
+        }
+
     }
     
     // Calculamos unos 40 puntos del circulo
@@ -399,6 +454,91 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
          }
     }
     
+    // Calcula las diagonales del poligono y las dibuja
+    func updateTriangles(poli: MKPolygon){
+        var aux_points: [CLLocationCoordinate2D] = []
+        
+        // Añadimos el centro del poligono al path
+        addPointoPath(point: poli.coordinate)
+        
+        // Borramos los triangulos si existes
+        if(triangles.count > 0){
+            mapView.removeOverlays(triangles)
+            triangles.removeAll()
+            aux_points.removeAll()
+        }
+        // Creamos los primero triangulos
+        for i in 0..<points.count{
+            if(i == 0){
+                aux_points.append(poli.coordinate)
+            }
+            var aux_arr: [CLLocationCoordinate2D] = []
+            aux_arr.append(poli.coordinate)
+            
+            let p1 = points[i > 0 ? i - 1 : points.count - 1]
+            aux_arr.append(p1.coordinate)
+            aux_points.append(p1.coordinate)
+            
+            let p2 = points[i]
+            aux_arr.append(p2.coordinate)
+            aux_points.append(p2.coordinate)
+            
+            // Dibujamos los triangulos
+            let aux_trian = MKPolygon.init(coordinates: aux_arr, count: 3)
+            mapView.addOverlay(aux_trian)
+            triangles.append(aux_trian)
+        }
+        
+        // Borramos circulos
+        if(arr_circle_auxs2.count > 0){
+            mapView.removeOverlays(arr_circle_auxs2)
+            arr_circle_auxs2.removeAll()
+        }
+        for h in 0..<triangles.count{
+            // Dibujar circulos
+            /*let center2 = MKCircle.init(center: triangles[h].coordinate, radius: 5)
+            mapView.addOverlay(center2)
+            
+            // Añadimos los puntos medios al path
+            arr_circle_auxs2.append(center2)*/
+            addPointoPath(point: triangles[h].coordinate)
+            
+            /*NSLog("-----------------------------------------")
+            NSLog(String(triangles.count))
+            NSLog(String(triangles[h].pointCount))
+            NSLog("-----------------------------------------")*/
+            
+            for h1 in 0..<triangles[h].pointCount{
+                var aux_arr: [CLLocationCoordinate2D] = []
+                
+                // Añadimos puntos
+                aux_arr.append(triangles[h].coordinate)
+                let p2 = triangles[h].points()[h1 > 0 ? h1 - 1 : triangles[h].pointCount - 1]
+                aux_arr.append(p2.coordinate)
+                let p3 = triangles[h].points()[h1]
+                aux_arr.append(p3.coordinate)
+                
+                
+                // Dibujamos triangulos2
+                let aux_trian = MKPolygon.init(coordinates: aux_arr, count: 3)
+                mapView.addOverlay(aux_trian)
+                triangles.append(aux_trian)
+                
+                // Dibujar circulos
+                /*let center3 = MKCircle.init(center: aux_trian.coordinate, radius: 5)
+                mapView.addOverlay(center3)
+                           
+                // Añadimos los puntos medios al path
+                arr_circle_auxs2.append(center3)*/
+                addPointoPath(point: aux_trian.coordinate)
+            }
+        }
+        /*NSLog("------------------------------------")
+        NSLog(String(path_coord.count))
+        NSLog(String(arr_circle_auxs2.count))
+        NSLog("------------------------------------")*/
+    }
     
+
 }
 
