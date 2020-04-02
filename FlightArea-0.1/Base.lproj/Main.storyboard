@@ -57,6 +57,15 @@
                                     <action selector="removeLastPointsBtnAction:" destination="SlN-dc-Nim" eventType="touchUpInside" id="dLR-91-wj2"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="9tI-Ig-xGv">
+                                <rect key="frame" x="61" y="700" width="46" height="30"/>
+                                <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <state key="normal" title="Debug"/>
+                                <connections>
+                                    <action selector="btnActionDebug:" destination="SlN-dc-Nim" eventType="touchUpInside" id="i2m-p2-pi3"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
                         <constraints>
@@ -64,7 +73,9 @@
                             <constraint firstItem="15K-6W-m7N" firstAttribute="top" secondItem="WEJ-cG-W31" secondAttribute="topMargin" constant="-44" id="6rp-nd-Not"/>
                             <constraint firstItem="mW5-1j-GPk" firstAttribute="top" secondItem="K1k-iI-LGl" secondAttribute="top" constant="639" id="AMY-ZE-28k"/>
                             <constraint firstItem="mW5-1j-GPk" firstAttribute="leading" secondItem="K1k-iI-LGl" secondAttribute="leading" constant="182" id="B3c-d3-fm6"/>
+                            <constraint firstItem="9tI-Ig-xGv" firstAttribute="leading" secondItem="K1k-iI-LGl" secondAttribute="leading" constant="61" id="agQ-hu-mq2"/>
                             <constraint firstItem="15K-6W-m7N" firstAttribute="leading" secondItem="K1k-iI-LGl" secondAttribute="leading" id="gCN-UO-6Jf"/>
+                            <constraint firstItem="9tI-Ig-xGv" firstAttribute="top" secondItem="K1k-iI-LGl" secondAttribute="top" constant="656" id="hVV-As-fe9"/>
                             <constraint firstItem="15K-6W-m7N" firstAttribute="centerY" secondItem="WEJ-cG-W31" secondAttribute="centerY" id="huA-Yu-Wzm"/>
                             <constraint firstItem="15K-6W-m7N" firstAttribute="centerX" secondItem="WEJ-cG-W31" secondAttribute="centerX" id="jnN-Eb-jfk"/>
                         </constraints>
