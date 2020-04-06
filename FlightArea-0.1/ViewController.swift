@@ -11,6 +11,7 @@ import CoreLocation
 import MapKit
 
 
+
 class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDelegate {
     
     //MARK: OUTLETs
@@ -41,14 +42,18 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     var arr_circle_auxs: [MKCircle] = []
     
     // Path
-    var flight_path: [CLLocationCoordinate2D] = []
+    var fly_points: [CLLocationCoordinate2D] = []
     var triangles: [MKPolygon] = []
+    var triangles2: [MKPolygon] = []
+    var triangles3: [MKPolygon] = []
+    var triangles4: [MKPolygon] = []
+    var triangles5: [MKPolygon] = []
     var path_coord: [CLLocationCoordinate2D] = []
-    var visits: [Bool] = []
     var arr_circle_auxs2: [MKCircle] = []
     
     // Debug visual
     var routeLineView: MKPolylineRenderer?
+    var annotations: [MKAnnotation] = []
     
     //Variables dron
     var kradio: Int = 15
@@ -131,31 +136,22 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     }
     
     
-    @IBAction func btnActionDebug(_ sender: Any) {
-        if(flight_path.count > 0){
-            NSLog("Fligh path array: ")
-            NSLog(String(flight_path.count))
-            NSLog("Visits array: ")
-            NSLog(String(visits.count))
-            NSLog("----------------------------------------------------")
-        
-            for r in 0..<flight_path.count{
-                
-                // Dibujamos los Annotations
-                let annotation = MKPointAnnotation()
-                annotation.coordinate = CLLocationCoordinate2D(latitude: flight_path[r].latitude, longitude: flight_path[r].longitude)
-                annotation.title = String(r)
-                mapView.addAnnotation(annotation)
-                
-                // Dibujamos las lineas
-                 let p1 = flight_path[r > 0 ? r - 1 : flight_path.count - 1]
-                 let p2 = flight_path[r]
-                
-                let routeLine = MKPolyline.init(coordinates: [p1,p2], count: 2)
-                mapView.addOverlay(routeLine)
+    @IBAction func btnActionDebug(_ sender: Any){
+        mapView.removeAnnotations(points)
+        for i in 0..<fly_points.count{
+            
+            // Creamos Annotation
+            let ano: MKPointAnnotation = MKPointAnnotation()
+            ano.coordinate = fly_points[i]
+            ano.title = String(i)
+            mapView.addAnnotation(ano)
+            
+            if(i < fly_points.count-1){
+                // Creamos lineas
+                let lines: [CLLocationCoordinate2D] = [fly_points[i], fly_points[i+1]]
+                let line = MKPolyline.init(coordinates: lines, count: 2)
+                mapView.addOverlay(line)
             }
-        
-        
         }
         
     }
@@ -414,19 +410,19 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     
     // Find the closest waypoint to DronLocation
     func findStartWaypoint() -> CLLocationCoordinate2D?{
-        if(path_coord.count>0){
-            var aux = path_coord[0]
+        if(points.count>0){
+            var aux = points[0]
             let p1 = MKMapPoint(userLocation)
-            let p2 = MKMapPoint(path_coord[0])
+            let p2 = MKMapPoint(points[0].coordinate)
             var dis = p1.distance(to: p2)
-            for i in 0..<path_coord.count {
-                let dis2 = p1.distance(to: MKMapPoint(path_coord[i]))
+            for i in 0..<points.count {
+                let dis2 = p1.distance(to: MKMapPoint(points[i].coordinate))
                 if(dis2 < dis){
-                    aux = path_coord[i]
+                    aux = points[i]
                     dis = dis2
                 }
             }
-            return aux
+            return aux.coordinate
         }
         else{
             return nil
@@ -451,10 +447,13 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
                     distancia = false
                     //NSLog(String(dis))
                 }
-                else{
-                }
+
             }
-            if(distancia == true){
+            
+            let mapPoint = MKMapPoint(point)
+            let cgpoint = polygonView!.point(for: mapPoint)
+            
+            if(distancia == true && polygonView!.path.contains(cgpoint)){
                 let center2 = MKCircle.init(center: point, radius: 5)
                 mapView.addOverlay(center2)
                 
@@ -525,6 +524,10 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             mapView.removeOverlays(triangles)
             triangles.removeAll()
             aux_points.removeAll()
+            mapView.removeOverlays(triangles2)
+            triangles2.removeAll()
+            mapView.removeOverlays(triangles3)
+            triangles3.removeAll()
         }
         // Creamos los primero triangulos
         for i in 0..<points.count{
@@ -572,61 +575,150 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
                 // Dibujamos triangulos2
                 let aux_trian = MKPolygon.init(coordinates: aux_arr, count: 3)
                 //mapView.addOverlay(aux_trian)
-                triangles.append(aux_trian)
+                triangles2.append(aux_trian)
                 
                 // Anyane y dubuja circulos
+                addPointoPath(point: aux_trian.coordinate)
+            }
+        }
+        
+        for h2 in 0..<triangles2.count{
+            //Anyade y dibuja circulos
+            addPointoPath(point: triangles2[h2].coordinate)
+            
+            for h22 in 0..<triangles2[h2].pointCount{
+                var aux_arr: [CLLocationCoordinate2D] = []
+                
+                // Anyadimos puntos
+                aux_arr.append(triangles2[h2].coordinate)
+                let p2 = triangles2[h2].points()[h22 > 0 ? h22 - 1 : triangles2[h2].pointCount - 1]
+                aux_arr.append(p2.coordinate)
+                let p3 = triangles2[h2].points()[h22]
+                aux_arr.append(p3.coordinate)
+                
+                
+                // Dibujamos triangulos3
+                let aux_trian = MKPolygon.init(coordinates: aux_arr, count: 3)
+                triangles3.append(aux_trian)
+                
+                //Anyade y dibuja circulos
+                addPointoPath(point: aux_trian.coordinate)
+            }
+        }
+        
+        
+        for h3 in 0..<triangles3.count{
+            //Anyade y dibuja circulos
+            addPointoPath(point: triangles3[h3].coordinate)
+            
+            for h33 in 0..<triangles3[h3].pointCount{
+                var aux_arr: [CLLocationCoordinate2D] = []
+                
+                // Anyadimos puntos
+                aux_arr.append(triangles3[h3].coordinate)
+                let p2 = triangles3[h3].points()[h33 > 0 ? h33 - 1 : triangles3[h3].pointCount - 1]
+                aux_arr.append(p2.coordinate)
+                let p3 = triangles3[h3].points()[h33]
+                aux_arr.append(p3.coordinate)
+                
+                
+                // Dibujamos triangulos3
+                let aux_trian = MKPolygon.init(coordinates: aux_arr, count: 3)
+                triangles4.append(aux_trian)
+                
+                //Anyade y dibuja circulos
+                addPointoPath(point: aux_trian.coordinate)
+            }
+        }
+        
+        for h4 in 0..<triangles4.count{
+            //Anyade y dibuja circulos
+            addPointoPath(point: triangles4[h4].coordinate)
+            
+            for h44 in 0..<triangles4[h4].pointCount{
+                var aux_arr: [CLLocationCoordinate2D] = []
+                
+                // Anyadimos puntos
+                aux_arr.append(triangles4[h4].coordinate)
+                let p2 = triangles4[h4].points()[h44 > 0 ? h44 - 1 : triangles4[h4].pointCount - 1]
+                aux_arr.append(p2.coordinate)
+                let p3 = triangles4[h4].points()[h44]
+                aux_arr.append(p3.coordinate)
+                
+                
+                // Dibujamos triangulos3
+                let aux_trian = MKPolygon.init(coordinates: aux_arr, count: 3)
+                triangles5.append(aux_trian)
+                
+                //Anyade y dibuja circulos
                 addPointoPath(point: aux_trian.coordinate)
             }
         }
     }
     
     
+    
     // Ordena la array path_coords dependiendo de cual sea el punto de inicio
     func createFlightPath(){
-        // Borramos de primeras
-        if(flight_path.count > 0){
-            flight_path.removeAll()
-            visits.removeAll()
+        var aux_coords: [CLLocationCoordinate2D] = path_coord
+        var enco: Bool = false
+        if(fly_points.count>0){
+            fly_points.removeAll()
         }
         
-        // Punto de inicio
-        flight_path.append(findStartWaypoint()!)
+        // Empezamos por el punto mas cercano al dron
+        fly_points.append(findStartWaypoint()!)
         
-        // Iniciamos el array de visitados
-        for l in 0..<path_coord.count{
-            if (l == 0){
-                visits.append(true)
+        var i = 0
+        while ( i < aux_coords.count && enco == false){
+            if(fly_points[0].latitude == aux_coords[i].latitude && fly_points[0].longitude == aux_coords[i].longitude){
+                aux_coords.remove(at: i)
+                enco=true
             }
-            else{
-                visits.append(false)
-            }
+            i+=1
         }
         
-        // Ordenamos segun el punto mas cercano al punto de inicio
-        for i in 0..<path_coord.count{
-            var dis2: CLLocationDistance = 1000
-            let p1 = MKMapPoint(flight_path[i])
-            var aux: CLLocationCoordinate2D = path_coord[0]
-            var index: Int = 0
-            
-            for i1 in 0..<path_coord.count {
-                let p2 = MKMapPoint(path_coord[i1])
-                let dis = p1.distance(to: p2)
-                if(dis < dis2 && visits[i1] == false){
-                    aux = path_coord[i1]
-                    dis2 = dis
-                    index = i1
+        let tam = aux_coords.count
+        var n = 0
+        while(n < tam){
+            //if(n != 0){
+                var aux = aux_coords[0]
+                let p1 = MKMapPoint(fly_points[n])
+                let p2 = MKMapPoint(aux_coords[0])
+                var dis = p1.distance(to: p2)
+                for n1 in 0..<aux_coords.count{
+                    let dis2 = p1.distance(to: MKMapPoint(aux_coords[n1]))
+                    if(dis2 < dis){
+                        aux = aux_coords[n1]
+                        dis = dis2
+                    }
+
                 }
-            }
-            
-            if(visits[index] == false){
-                flight_path.append(aux)
-                visits[index] = true
-            }
+                var i2 = 0
+                var enco2 = false
+                while (i2 < aux_coords.count && enco2==false){
+                    if(aux.latitude == aux_coords[i2].latitude && aux.longitude == aux_coords[i2].longitude){
+                        aux_coords.remove(at: i2)
+                        fly_points.append(aux)
+                        enco2=true
+                    }
+                    i2+=1
+                }
+            //}
+            n+=1
         }
         
+        NSLog("-----------------------------------------------------")
+        for i3 in 0..<fly_points.count{
+            NSLog(String(fly_points[i3].latitude))
+            NSLog(String(fly_points[i3].longitude))
+        }
+        NSLog("-----------------------------------------------------")
     }
     
-
+    
+    
+    
+    
 }
 
