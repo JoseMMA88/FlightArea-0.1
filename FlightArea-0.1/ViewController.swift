@@ -661,6 +661,8 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     // Ordena la array path_coords dependiendo de cual sea el punto de inicio
     func createFlightPath(){
         var aux_coords: [CLLocationCoordinate2D] = path_coord
+        var derecha_coords: [CLLocationCoordinate2D] = []
+        var izquierda_coords: [CLLocationCoordinate2D] = []
         var enco: Bool = false
         if(fly_points.count>0){
             fly_points.removeAll()
@@ -681,7 +683,105 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         let tam = aux_coords.count
         var n = 0
         while(n < tam){
-            //if(n != 0){
+            // Limpiamos
+            if(izquierda_coords.count>0){
+                izquierda_coords.removeAll()
+            }
+            if(derecha_coords.count>0){
+                derecha_coords.removeAll()
+            }
+            
+            
+            // Miramos derecha - izquierda
+            for n11 in 0..<aux_coords.count{
+            if(pointsLongPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 && pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 ||
+                 pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 0){
+                derecha_coords.append(aux_coords[n11])
+             }
+             else if(pointsLongPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 1 &&
+                 pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 ||
+                 pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 0){
+                 izquierda_coords.append(aux_coords[n11])
+             }
+            }
+            
+            if(derecha_coords.count != 0 || izquierda_coords.count != 0){
+                // Avanzamos DERECHA
+                if(derecha_coords.count>0){
+                    var aux = derecha_coords[0]
+                    let p1 = MKMapPoint(fly_points[n])
+                    let p2 = MKMapPoint(derecha_coords[0])
+                    var dis = p1.distance(to: p2)
+                    for n112 in 0..<derecha_coords.count{
+                        let dis2 = p1.distance(to: MKMapPoint(derecha_coords[n112]))
+                        if(dis2 < dis){
+                            aux = derecha_coords[n112]
+                            dis = dis2
+                        }
+                    }
+                    
+                    var i2 = 0
+                    var enco2 = false
+                    while (i2 < derecha_coords.count && enco2==false){
+                        if(aux.latitude == derecha_coords[i2].latitude && aux.longitude == derecha_coords[i2].longitude){
+                            derecha_coords.remove(at: i2)
+                            fly_points.append(aux)
+                            enco2=true
+                        }
+                        i2+=1
+                    }
+                    
+                    var i22 = 0
+                    var enco22 = false
+                    while (i22 < aux_coords.count && enco22==false){
+                        if(aux.latitude == aux_coords[i22].latitude && aux.longitude == aux_coords[i22].longitude){
+                            aux_coords.remove(at: i22)
+                            enco22=true
+                        }
+                        i22+=1
+                    }
+                }
+            
+                // Avanzamos Izquierda
+                else if(izquierda_coords.count>0){
+                    var aux = izquierda_coords[0]
+                    let p1 = MKMapPoint(fly_points[n])
+                    let p2 = MKMapPoint(izquierda_coords[0])
+                    var dis = p1.distance(to: p2)
+                    for n113 in 0..<izquierda_coords.count{
+                        let dis2 = p1.distance(to: MKMapPoint(izquierda_coords[n113]))
+                        if(dis2 < dis){
+                            aux = izquierda_coords[n113]
+                            dis = dis2
+                        }
+                    }
+                    
+                    var i2 = 0
+                    var enco2 = false
+                    while (i2 < izquierda_coords.count && enco2==false){
+                        if(aux.latitude == izquierda_coords[i2].latitude && aux.longitude == izquierda_coords[i2].longitude){
+                            izquierda_coords.remove(at: i2)
+                            fly_points.append(aux)
+                            enco2=true
+                        }
+                        i2+=1
+                    }
+                    
+                    var i22 = 0
+                    var enco22 = false
+                    while (i22 < aux_coords.count && enco22==false){
+                        if(aux.latitude == aux_coords[i22].latitude && aux.longitude == aux_coords[i22].longitude){
+                            aux_coords.remove(at: i22)
+                            enco22=true
+                        }
+                        i22+=1
+                    }
+                }
+                n+=1
+            }
+            
+            else if (derecha_coords.count == 0 && izquierda_coords.count == 0){
+                // Avanzamos DELANTE
                 var aux = aux_coords[0]
                 let p1 = MKMapPoint(fly_points[n])
                 let p2 = MKMapPoint(aux_coords[0])
@@ -692,7 +792,6 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
                         aux = aux_coords[n1]
                         dis = dis2
                     }
-
                 }
                 var i2 = 0
                 var enco2 = false
@@ -704,8 +803,8 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
                     }
                     i2+=1
                 }
-            //}
-            n+=1
+                n+=1
+            }
         }
         
         NSLog("-----------------------------------------------------")
@@ -716,6 +815,32 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         NSLog("-----------------------------------------------------")
     }
     
+    // Si devuelve 1 esta al Oeste
+    // Si devuelve 2 esta al Este
+    // Si devuelve 0 esta en la misma Longitud
+    func pointsLongPosition(coord_guia: CLLocationCoordinate2D, coord2: CLLocationCoordinate2D) -> Int{
+        if(coord_guia.longitude < coord2.longitude){
+            return 2
+        }
+        else if(coord_guia.longitude > coord2.longitude){
+            return 1
+        }
+        return 0
+    }
+    
+    
+    // Si devuelve 1 esta al Norte
+    // Si devuelve 2 esta al Sur
+    // Si devuelve 0 esta en la misma Latitud
+    func pointsLatPosition(coord_guia: CLLocationCoordinate2D, coord2: CLLocationCoordinate2D) -> Int{
+        if(coord_guia.latitude < coord2.latitude){
+            return 1
+        }
+        else if(coord_guia.latitude > coord2.latitude){
+            return 2
+        }
+        return 0
+    }
     
     
     
