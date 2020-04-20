@@ -24,6 +24,7 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
     var polygon: MKPolygon?
     var polygonView: MKPolygonRenderer?
     var circle: MKCircle?
+    var circlee: MKCircle?
     var circleView: MKCircleRenderer?
     var center: MKCircle?
     
@@ -155,6 +156,8 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
         }
         
     }
+    
+    
     
     
     
@@ -313,9 +316,9 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             
             // Anyadimos el punto mas cercano al path de vuelo
             // y creamos el flight path
-            NSLog("----------------------------------------------------")
+            /*NSLog("----------------------------------------------------")
             NSLog("Path Coords: ")
-            NSLog(String(path_coord.count))
+            NSLog(String(path_coord.count))*/
             createFlightPath()
         }
     }
@@ -680,6 +683,40 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             i+=1
         }
         
+        // Determinamos la orientacion del recorrido
+        var ori = 2 //2 --> Sur-Norte
+                    //1 --> Norte-Sur
+        
+        var aux0 = points[0].coordinate
+        let p1 = MKMapPoint(findStartWaypoint()!)
+        let p2 = MKMapPoint(points[0].coordinate)
+        var dis = p1.distance(to: p2)
+        for n0 in 0..<points.count{
+            let dis2 = p1.distance(to: MKMapPoint(points[n0].coordinate))
+            if(dis2 > dis){
+                aux0 = points[n0].coordinate
+                dis = dis2
+            }
+        }
+
+        if(pointsLatPosition(coord_guia: findStartWaypoint()!, coord2: aux0) == 2){
+            ori = 1
+        }
+
+        
+        //let rad: CLLocationDistance = CLLocationDistance(kradio) //metros
+        
+        /*// Creamos el circulo
+        circlee = MKCircle.init(center: aux0, radius: rad)
+        if (circlee != nil){
+            mapView.removeOverlay(circlee!)
+        }
+        //updatePeriPoints(cent: coord, rad: rad)
+        mapView.addOverlay(circlee!)*/
+        
+        NSLog(String(ori))
+        
+        
         let tam = aux_coords.count
         var n = 0
         while(n < tam){
@@ -692,14 +729,15 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             }
             
             
+            
             // Miramos derecha - izquierda
             for n11 in 0..<aux_coords.count{
-            if(pointsLongPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 && pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 ||
+            if(pointsLongPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 && pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == ori ||
                  pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 0){
                 derecha_coords.append(aux_coords[n11])
              }
              else if(pointsLongPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 1 &&
-                 pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 2 ||
+                 pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == ori ||
                  pointsLatPosition(coord_guia: fly_points[n], coord2: aux_coords[n11]) == 0){
                  izquierda_coords.append(aux_coords[n11])
              }
@@ -807,12 +845,12 @@ class ViewController: UIViewController , MKMapViewDelegate, CLLocationManagerDel
             }
         }
         
-        NSLog("-----------------------------------------------------")
+        /*NSLog("-----------------------------------------------------")
         for i3 in 0..<fly_points.count{
             NSLog(String(fly_points[i3].latitude))
             NSLog(String(fly_points[i3].longitude))
         }
-        NSLog("-----------------------------------------------------")
+        NSLog("-----------------------------------------------------")*/
     }
     
     // Si devuelve 1 esta al Oeste
